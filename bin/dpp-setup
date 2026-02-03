@@ -51,11 +51,49 @@ for repo in "${repos[@]}"; do
 done
 
 echo ""
+
+# プラグインもインストールするか確認
+read -p "プラグインもインストールしますか? [Y/n]: " install_plugins
+install_plugins=${install_plugins:-Y}
+
+if [[ "$install_plugins" =~ ^[Yy]$ ]]; then
+    echo ""
+    echo "=== プラグインをインストール ==="
+
+    # TOMLからrepoを抽出してクローン
+    TOML_DIR="$HOME/.vim/rc"
+    if [ -d "$TOML_DIR" ]; then
+        grep -h "^repo = " "$TOML_DIR"/dpp*.toml 2>/dev/null | \
+        sed "s/repo = '//g" | sed "s/'//g" | \
+        while read -r repo; do
+            target="$DPP_BASE/$repo"
+            if [ -d "$target" ]; then
+                echo "✓ $repo (既存)"
+            else
+                echo "クローン中: $repo"
+                mkdir -p "$(dirname "$target")"
+                git clone --depth 1 "https://github.com/$repo" "$target" 2>/dev/null || echo "  ✗ 失敗: $repo"
+            fi
+        done
+
+        # fzfのビルド
+        if [ -d "$DPP_BASE/junegunn/fzf" ]; then
+            echo ""
+            echo "fzfをビルド中..."
+            cd "$DPP_BASE/junegunn/fzf" && ./install --bin --no-update-rc >/dev/null 2>&1
+            echo "✓ fzf ビルド完了"
+        fi
+    fi
+fi
+
+echo ""
 echo "=== セットアップ完了 ==="
 echo ""
 echo "次のステップ:"
 echo "  1. vim を起動 (状態が自動構築されます)"
-echo "  2. :DppInstall でプラグインをインストール"
+if [[ ! "$install_plugins" =~ ^[Yy]$ ]]; then
+    echo "  2. :DppInstall でプラグインをインストール"
+fi
 echo "  3. 各言語ファイルで :LspInstallServer でLSPをインストール"
 echo ""
 echo "Haskellを使う場合:"
