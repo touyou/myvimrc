@@ -14,8 +14,12 @@ echo "=== myvimrc インストール ==="
 echo "ソース: $SCRIPT_DIR"
 echo ""
 
-# バックアップと削除
-backup_and_link() {
+# バックアップするか確認
+read -p "既存ファイルをバックアップしますか? [Y/n]: " do_backup
+do_backup=${do_backup:-Y}
+
+# リンク作成関数
+create_link() {
     local src="$1"
     local dest="$2"
 
@@ -23,24 +27,31 @@ backup_and_link() {
         rm "$dest"
         echo "既存のシンボリックリンクを削除: $dest"
     elif [ -e "$dest" ]; then
-        local backup="${dest}.backup.$(date +%Y%m%d%H%M%S)"
-        mv "$dest" "$backup"
-        echo "バックアップ作成: $backup"
+        if [[ "$do_backup" =~ ^[Yy]$ ]]; then
+            local backup="${dest}.backup.$(date +%Y%m%d%H%M%S)"
+            mv "$dest" "$backup"
+            echo "バックアップ作成: $backup"
+        else
+            rm -rf "$dest"
+            echo "既存ファイルを削除: $dest"
+        fi
     fi
 
     ln -s "$src" "$dest"
     echo "✓ $dest -> $src"
 }
 
+echo ""
+
 # ~/.vimrc
-backup_and_link "$SCRIPT_DIR/vimrc" "$HOME/.vimrc"
+create_link "$SCRIPT_DIR/vimrc" "$HOME/.vimrc"
 
 # ~/.vim/rc ディレクトリ
 mkdir -p "$HOME/.vim"
-backup_and_link "$SCRIPT_DIR/rc" "$HOME/.vim/rc"
+create_link "$SCRIPT_DIR/rc" "$HOME/.vim/rc"
 
 # ~/.vim/bin ディレクトリ
-backup_and_link "$SCRIPT_DIR/bin" "$HOME/.vim/bin"
+create_link "$SCRIPT_DIR/bin" "$HOME/.vim/bin"
 
 # ~/.vim/tmp ディレクトリ (スワップファイル用)
 mkdir -p "$HOME/.vim/tmp"
