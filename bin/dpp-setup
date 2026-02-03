@@ -1,0 +1,62 @@
+#!/bin/bash
+# dpp.vim 初期セットアップスクリプト
+# 新しい機体で実行してください
+#
+# 前提条件:
+#   - Deno がインストール済み (mise install deno)
+#   - ~/.vimrc, ~/.vim/rc/* がコピー済み
+#
+# 使い方: ~/.vim/bin/dpp-setup
+
+set -e
+
+echo "=== dpp.vim セットアップ ==="
+echo ""
+
+# Deno確認
+if ! command -v deno &> /dev/null; then
+    echo "エラー: Denoがインストールされていません"
+    echo "  mise install deno  または  curl -fsSL https://deno.land/install.sh | sh"
+    exit 1
+fi
+echo "✓ Deno: $(deno --version | head -1)"
+
+# ディレクトリ作成
+DPP_BASE="$HOME/.cache/dpp/repos/github.com"
+mkdir -p "$DPP_BASE/Shougo"
+mkdir -p "$DPP_BASE/vim-denops"
+mkdir -p "$HOME/.vim/tmp"
+
+echo ""
+echo "=== dpp コアコンポーネントをクローン ==="
+
+# dpp.vim本体と拡張
+repos=(
+    "Shougo/dpp.vim"
+    "Shougo/dpp-ext-installer"
+    "Shougo/dpp-ext-toml"
+    "Shougo/dpp-ext-lazy"
+    "Shougo/dpp-protocol-git"
+    "vim-denops/denops.vim"
+)
+
+for repo in "${repos[@]}"; do
+    target="$DPP_BASE/$repo"
+    if [ -d "$target" ]; then
+        echo "✓ $repo (既存)"
+    else
+        echo "クローン中: $repo"
+        git clone --depth 1 "https://github.com/$repo" "$target"
+    fi
+done
+
+echo ""
+echo "=== セットアップ完了 ==="
+echo ""
+echo "次のステップ:"
+echo "  1. vim を起動 (状態が自動構築されます)"
+echo "  2. :DppInstall でプラグインをインストール"
+echo "  3. 各言語ファイルで :LspInstallServer でLSPをインストール"
+echo ""
+echo "Haskellを使う場合:"
+echo "  ghcup install ghc hls cabal"

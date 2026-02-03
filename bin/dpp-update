@@ -1,0 +1,70 @@
+#!/bin/bash
+# dpp.vim プラグイン更新スクリプト (ビルドコマンド対応)
+# 使い方: dpp-update
+
+set -e
+
+echo "=== dpp.vim プラグイン更新 ==="
+echo ""
+
+DPP_REPOS="$HOME/.cache/dpp/repos/github.com"
+
+if [ ! -d "$DPP_REPOS" ]; then
+    echo "エラー: dppリポジトリが見つかりません"
+    exit 1
+fi
+
+total=$(find "$DPP_REPOS" -maxdepth 2 -mindepth 2 -type d | wc -l | tr -d ' ')
+current=0
+updated=0
+
+echo "更新対象: $total プラグイン"
+echo ""
+
+find "$DPP_REPOS" -maxdepth 2 -mindepth 2 -type d | sort | while read -r repo; do
+    current=$((current + 1))
+    name=$(echo "$repo" | sed "s|$DPP_REPOS/||")
+
+    printf "[%2d/%2d] %-40s " "$current" "$total" "$name"
+
+    if ! cd "$repo" 2>/dev/null; then
+        echo "✗ (ディレクトリエラー)"
+        continue
+    fi
+
+    # 更新前のコミットハッシュ
+    before=$(git rev-parse HEAD 2>/dev/null || echo "")
+
+    # git pull
+    if ! git pull --quiet 2>/dev/null; then
+        echo "✗ (pullエラー)"
+        continue
+    fi
+
+    # 更新後のコミットハッシュ
+    after=$(git rev-parse HEAD 2>/dev/null || echo "")
+
+    if [ "$before" != "$after" ]; then
+        echo "✓ (更新あり)"
+
+        # ビルドコマンドがあれば実行
+        case "$name" in
+            junegunn/fzf)
+                echo "       → ビルド中: ./install --bin"
+                ./install --bin --no-update-rc >/dev/null 2>&1 || true
+                ;;
+        esac
+    else
+        echo "✓"
+    fi
+done
+
+echo ""
+echo "=== 更新完了 ==="
+
+# 状態ファイルを削除して次回Vim起動時に再構築
+if [ -f "$HOME/.cache/dpp/vim/state.vim" ]; then
+    rm -f "$HOME/.cache/dpp/vim/startup.vim" "$HOME/.cache/dpp/vim/state.vim"
+    echo ""
+    echo "状態ファイルを削除しました。次回Vim起動時に自動再構築されます。"
+fi
