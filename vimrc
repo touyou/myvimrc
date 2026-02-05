@@ -115,7 +115,11 @@ set guicursor=
 " =============================================================================
 " クリップボード・マウス
 " =============================================================================
-set clipboard+=unnamedplus
+if has('unnamedplus')
+    set clipboard& clipboard+=unnamedplus,unnamed
+else
+    set clipboard& clipboard+=unnamed
+endif
 if has('mouse')
     set mouse=a
 endif
